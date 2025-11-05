@@ -21,25 +21,22 @@ VT_FILE_SCAN_URL = "https://www.virustotal.com/api/v3/files"
 VT_FILE_REPORT_URL = "https://www.virustotal.com/api/v3/analyses/{}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 **Welcome!**\nSend me a file or image and I'll scan it using VirusTotal.", parse_mode="Markdown")
+    await update.message.reply_text("👋 Welcome! Send me a file or image and I'll scan it using VirusTotal.", parse_mode="Markdown")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📌 **How to use:**\nJust send a file or image in this chat (private or group) and I'll scan it automatically.",
-        parse_mode="Markdown"
-    )
+    await update.message.reply_text("📌 How to use:\nSend a file or image in this chat and I'll scan it automatically.", parse_mode="Markdown")
 
 async def scan_and_report(file_path, progress_msg):
     headers = {"x-apikey": VT_API_KEY}
     try:
         with open(file_path, "rb") as f:
             response = requests.post(VT_FILE_SCAN_URL, headers=headers, files={"file": f})
-        response.raise_for_status()
-        analysis_id = response.json().get("data", {}).get("id")
-        if not analysis_id:
-            await progress_msg.edit_text("❌ Failed to get analysis ID from VirusTotal.")
-            return
-        await progress_msg.edit_text("✅ File uploaded! Scanning in progress...")
+            response.raise_for_status()
+            analysis_id = response.json().get("data", {}).get("id")
+            if not analysis_id:
+                await progress_msg.edit_text("❌ Failed to get analysis ID from VirusTotal.")
+                return
+            await progress_msg.edit_text("✅ File uploaded! Scanning in progress...")
     except Exception as e:
         await progress_msg.edit_text(f"❌ Error uploading file: {escape_markdown(str(e), version=2)}")
         return
@@ -48,7 +45,7 @@ async def scan_and_report(file_path, progress_msg):
     engine_index = 0
     timeout_counter = 0
 
-    while timeout_counter < 24:  # ~2 minutes
+    while timeout_counter < 24:
         await asyncio.sleep(5)
         try:
             status_response = requests.get(VT_FILE_REPORT_URL.format(analysis_id), headers=headers)
@@ -57,10 +54,7 @@ async def scan_and_report(file_path, progress_msg):
             if analysis_data.get("status") == "completed":
                 stats = analysis_data.get("stats", {})
                 results = analysis_data.get("results", {})
-
-                malicious_engines = []
-                suspicious_engines = []
-                clean_engines = []
+                malicious_engines, suspicious_engines, clean_engines = [], [], []
 
                 for engine_name, details in results.items():
                     category = details.get("category")
@@ -93,7 +87,6 @@ async def scan_and_report(file_path, progress_msg):
                 )
 
                 await progress_msg.edit_text(escape_markdown(summary, version=2), parse_mode="MarkdownV2")
-
                 try:
                     os.remove(file_path)
                 except Exception as e:
@@ -133,13 +126,12 @@ def main():
     app.add_handler(MessageHandler(filters.Document.ALL, scan_file))
     app.add_handler(MessageHandler(filters.PHOTO, scan_photo))
 
-    # Webhook configuration for Render
     port = int(os.environ.get("PORT", 8443))
     app.run_webhook(
         listen="0.0.0.0",
         port=port,
         url_path=TELEGRAM_TOKEN,
-        webhook_url=f"https://telegram-virus-scanner.onrender.com/{TELEGRAM_TOKEN}"
+        webhook_url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{TELEGRAM_TOKEN}"
     )
 
 if __name__ == "__main__":
