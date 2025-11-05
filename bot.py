@@ -36,16 +36,18 @@ async def scan_and_report(file_path, progress_msg):
             if not analysis_id:
                 await progress_msg.edit_text("❌ Failed to get analysis ID from VirusTotal.")
                 return
-            await progress_msg.edit_text("✅ File uploaded! Scanning in progress...")
+            vt_link = f"https://www.virustotal.com/gui/file-analysis/{analysis_id}"
+            await progress_msg.edit_text(f"✅ File uploaded! Scanning in progress...\n🔗 View on VirusTotal", parse_mode="Markdown")
     except Exception as e:
-        await progress_msg.edit_text(f"❌ Error uploading file: {escape_markdown(str(e), version=2)}")
+        await progress_msg.edit_text(f"❌ Error uploading file: {escape_markdown(str(e), version=2)}", parse_mode="MarkdownV2")
         return
 
-    engines_for_progress = ["Kaspersky", "Avast", "BitDefender"]
     engine_index = 0
     timeout_counter = 0
+    max_attempts = 120  # 10 minutes
+    engines_for_progress = ["Scanning..."]
 
-    while timeout_counter < 24:
+    while timeout_counter < max_attempts:
         await asyncio.sleep(5)
         try:
             status_response = requests.get(VT_FILE_REPORT_URL.format(analysis_id), headers=headers)
@@ -83,6 +85,7 @@ async def scan_and_report(file_path, progress_msg):
                     f"• ✅ *Harmless:* `{stats.get('harmless', 0)}`\n"
                     f"• ❓ *Undetected:* `{stats.get('undetected', 0)}`\n\n"
                     f"🧠 **Detected Viruses:**\n{grouped_text}\n\n"
+                    f"🔗 View Full Report\n\n"
                     f"Powered by Vy Sokhamphou"
                 )
 
@@ -93,13 +96,17 @@ async def scan_and_report(file_path, progress_msg):
                     logging.error(f"Error deleting file: {e}")
                 return
             else:
-                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})")
+                # Dynamically update engines_for_progress
+                results = analysis_data.get("results", {})
+                if results:
+                    engines_for_progress = list(results.keys())
+                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})\n🔗 View on VirusTotal", parse_mode="Markdown")
                 engine_index = (engine_index + 1) % len(engines_for_progress)
         except Exception as e:
             logging.error(f"Error fetching report: {e}")
         timeout_counter += 1
 
-    await progress_msg.edit_text("⚠️ Scan taking too long. Please check on VirusTotal manually.")
+    await progress_msg.edit_text(f"⚠️ Scan taking too long. Please check manually:\n🔗 View on VirusTotal", parse_mode="Markdown")
     try:
         os.remove(file_path)
     except Exception as e:
