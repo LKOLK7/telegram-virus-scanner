@@ -37,7 +37,7 @@ async def scan_and_report(file_path, progress_msg):
                 await progress_msg.edit_text("❌ Failed to get analysis ID from VirusTotal.")
                 return
             vt_link = f"https://www.virustotal.com/gui/file-analysis/{analysis_id}"
-            await progress_msg.edit_text(f"✅ File uploaded! Scanning in progress...\n🔗 View on VirusTotal", parse_mode="Markdown")
+            await progress_msg.edit_text(f"✅ File uploaded! Scanning in progress...\n🔗 [View on VirusTotal, parse_mode="Markdown")
     except Exception as e:
         await progress_msg.edit_text(f"❌ Error uploading file: {escape_markdown(str(e), version=2)}", parse_mode="MarkdownV2")
         return
@@ -45,7 +45,7 @@ async def scan_and_report(file_path, progress_msg):
     engine_index = 0
     timeout_counter = 0
     max_attempts = 120  # 10 minutes
-    engines_for_progress = ["Scanning..."]
+    engines_for_progress = ["Initializing scan..."]
 
     while timeout_counter < max_attempts:
         await asyncio.sleep(5)
@@ -100,13 +100,13 @@ async def scan_and_report(file_path, progress_msg):
                 results = analysis_data.get("results", {})
                 if results:
                     engines_for_progress = list(results.keys())
-                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})\n🔗 View on VirusTotal", parse_mode="Markdown")
+                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})\n", parse_mode="Markdown")
                 engine_index = (engine_index + 1) % len(engines_for_progress)
         except Exception as e:
             logging.error(f"Error fetching report: {e}")
         timeout_counter += 1
 
-    await progress_msg.edit_text(f"⚠️ Scan taking too long. Please check manually:\n🔗 View on VirusTotal", parse_mode="Markdown")
+    await progress_msg.edit_text(f"⚠️ Scan taking too long. Please check manually:\n", parse_mode="Markdown")
     try:
         os.remove(file_path)
     except Exception as e:
