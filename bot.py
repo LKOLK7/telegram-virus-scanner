@@ -15,8 +15,10 @@ VT_API_KEY = os.getenv("VT_API_KEY")
 if not TELEGRAM_TOKEN or not VT_API_KEY:
     raise EnvironmentError("Missing TELEGRAM_TOKEN or VT_API_KEY in environment variables.")
 
+# Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+# VirusTotal API endpoints
 VT_FILE_SCAN_URL = "https://www.virustotal.com/api/v3/files"
 VT_FILE_REPORT_URL = "https://www.virustotal.com/api/v3/analyses/{}"
 
@@ -45,6 +47,7 @@ async def scan_and_report(file_path, progress_msg):
     timeout_counter = 0
     max_attempts = 120  # 10 minutes
     engines_for_progress = ["Initializing scan..."]
+    previous_text = None
 
     while timeout_counter < max_attempts:
         await asyncio.sleep(5)
@@ -52,6 +55,7 @@ async def scan_and_report(file_path, progress_msg):
             status_response = requests.get(VT_FILE_REPORT_URL.format(analysis_id), headers=headers)
             status_response.raise_for_status()
             analysis_data = status_response.json().get("data", {}).get("attributes", {})
+
             if analysis_data.get("status") == "completed":
                 stats = analysis_data.get("stats", {})
                 results = analysis_data.get("results", {})
@@ -93,15 +97,21 @@ async def scan_and_report(file_path, progress_msg):
                 except Exception as e:
                     logging.error(f"Error deleting file: {e}")
                 return
-            else:
-                # Dynamically update engines_for_progress
-                results = analysis_data.get("results", {})
-                if results:
-                    engines_for_progress = list(results.keys())
-                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})")
-                engine_index = (engine_index + 1) % len(engines_for_progress)
+
+            # Update progress message only if text changes
+            results = analysis_data.get("results", {})
+            if results:
+                engines_for_progress = list(results.keys())
+            new_text = f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})"
+            if new_text != previous_text:
+                await progress_msg.edit_text(new_text)
+                previous_text = new_text
+
+            engine_index = (engine_index + 1) % len(engines_for_progress)
+
         except Exception as e:
             logging.error(f"Error fetching report: {e}")
+
         timeout_counter += 1
 
     await progress_msg.edit_text("⚠️ Scan taking too long. Please check manually on VirusTotal.")
