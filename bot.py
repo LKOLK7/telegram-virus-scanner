@@ -36,8 +36,7 @@ async def scan_and_report(file_path, progress_msg):
             if not analysis_id:
                 await progress_msg.edit_text("❌ Failed to get analysis ID from VirusTotal.")
                 return
-            vt_link = f"https://www.virustotal.com/gui/file-analysis/{analysis_id}"
-            await progress_msg.edit_text(f"✅ File uploaded! Scanning in progress...\n🔗 [View on VirusTotal, parse_mode="Markdown")
+            await progress_msg.edit_text("✅ File uploaded! Scanning in progress...")
     except Exception as e:
         await progress_msg.edit_text(f"❌ Error uploading file: {escape_markdown(str(e), version=2)}", parse_mode="MarkdownV2")
         return
@@ -85,7 +84,6 @@ async def scan_and_report(file_path, progress_msg):
                     f"• ✅ *Harmless:* `{stats.get('harmless', 0)}`\n"
                     f"• ❓ *Undetected:* `{stats.get('undetected', 0)}`\n\n"
                     f"🧠 **Detected Viruses:**\n{grouped_text}\n\n"
-                    f"🔗 View Full Report\n\n"
                     f"Powered by Vy Sokhamphou"
                 )
 
@@ -100,13 +98,13 @@ async def scan_and_report(file_path, progress_msg):
                 results = analysis_data.get("results", {})
                 if results:
                     engines_for_progress = list(results.keys())
-                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})\n", parse_mode="Markdown")
+                await progress_msg.edit_text(f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})")
                 engine_index = (engine_index + 1) % len(engines_for_progress)
         except Exception as e:
             logging.error(f"Error fetching report: {e}")
         timeout_counter += 1
 
-    await progress_msg.edit_text(f"⚠️ Scan taking too long. Please check manually:\n", parse_mode="Markdown")
+    await progress_msg.edit_text("⚠️ Scan taking too long. Please check manually on VirusTotal.")
     try:
         os.remove(file_path)
     except Exception as e:
