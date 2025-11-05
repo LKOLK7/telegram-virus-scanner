@@ -22,6 +22,19 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 VT_FILE_SCAN_URL = "https://www.virustotal.com/api/v3/files"
 VT_FILE_REPORT_URL = "https://www.virustotal.com/api/v3/analyses/{}"
 
+# Fixed list of engines for progress updates
+engines_for_progress = [
+    "Kaspersky", "Avast", "BitDefender", "Bkav", "Lionic", "MicroWorld-eScan", "ClamAV", "CTX", "CAT-QuickHeal",
+    "ALYac", "Malwarebytes", "Zillya", "Sangfor", "K7AntiVirus", "K7GW", "CrowdStrike", "Baidu", "VirIT",
+    "Symantec", "ESET-NOD32", "TrendMicro-HouseCall", "Avast", "Cynet", "Kaspersky", "BitDefender", "NANO-Antivirus",
+    "ViRobot", "Rising", "Sophos", "F-Secure", "DrWeb", "VIPRE", "TrendMicro", "McAfeeD", "CMC", "Emsisoft",
+    "huorong", "GData", "Jiangmin", "Varist", "Avira", "Antiy-AVL", "Kingsoft", "Gridinsoft", "Xcitium", "Arcabit",
+    "SUPERAntiSpyware", "ZoneAlarm", "Microsoft", "Google", "AhnLab-V3", "Acronis", "VBA32", "TACHYON", "Zoner",
+    "Tencent", "Yandex", "TrellixENS", "Ikarus", "MaxSecure", "Fortinet", "AVG", "Panda", "Skyhigh", "Avast-Mobile",
+    "SymantecMobileInsight", "BitDefenderFalx", "Elastic", "DeepInstinct", "Webroot", "APEX", "Paloalto", "Alibaba",
+    "Trapmine", "Cylance", "SentinelOne", "tehtris", "Trustlook", "alibabacloud"
+]
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Welcome! Send me a file or image and I'll scan it using VirusTotal.", parse_mode="Markdown")
 
@@ -46,7 +59,6 @@ async def scan_and_report(file_path, progress_msg):
     engine_index = 0
     timeout_counter = 0
     max_attempts = 120  # 10 minutes
-    engines_for_progress = ["Initializing scan..."]
     previous_text = None
 
     while timeout_counter < max_attempts:
@@ -99,9 +111,6 @@ async def scan_and_report(file_path, progress_msg):
                 return
 
             # Update progress message only if text changes
-            results = analysis_data.get("results", {})
-            if results:
-                engines_for_progress = list(results.keys())
             new_text = f"🔍 Scanning... please wait ({engines_for_progress[engine_index]})"
             if new_text != previous_text:
                 await progress_msg.edit_text(new_text)
