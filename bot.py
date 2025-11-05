@@ -21,10 +21,13 @@ VT_FILE_SCAN_URL = "https://www.virustotal.com/api/v3/files"
 VT_FILE_REPORT_URL = "https://www.virustotal.com/api/v3/analyses/{}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Welcome! Send me a file or image and I'll scan it using VirusTotal.", parse_mode="Markdown")
+    await update.message.reply_text("👋 **Welcome!**\nSend me a file or image and I'll scan it using VirusTotal.", parse_mode="Markdown")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📌 How to use:\nSend a file or image in this chat and I'll scan it automatically.", parse_mode="Markdown")
+    await update.message.reply_text(
+        "📌 **How to use:**\nJust send a file or image in this chat (private or group) and I'll scan it automatically.",
+        parse_mode="Markdown"
+    )
 
 async def scan_and_report(file_path, progress_msg):
     headers = {"x-apikey": VT_API_KEY}
@@ -45,7 +48,7 @@ async def scan_and_report(file_path, progress_msg):
     engine_index = 0
     timeout_counter = 0
 
-    while timeout_counter < 24:
+    while timeout_counter < 24:  # ~2 minutes
         await asyncio.sleep(5)
         try:
             status_response = requests.get(VT_FILE_REPORT_URL.format(analysis_id), headers=headers)
@@ -130,12 +133,13 @@ def main():
     app.add_handler(MessageHandler(filters.Document.ALL, scan_file))
     app.add_handler(MessageHandler(filters.PHOTO, scan_photo))
 
+    # Webhook configuration for Render
     port = int(os.environ.get("PORT", 8443))
     app.run_webhook(
         listen="0.0.0.0",
         port=port,
         url_path=TELEGRAM_TOKEN,
-        webhook_url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{TELEGRAM_TOKEN}"
+        webhook_url=f"https://telegram-virus-scanner.onrender.com/{TELEGRAM_TOKEN}"
     )
 
 if __name__ == "__main__":
